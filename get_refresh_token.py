@@ -1,10 +1,13 @@
 import base64
 import requests
 import json
+from dotenv import dotenv_values
 
-APP_KEY = '<APP_KEY?'
-APP_SECRET = '<APP_S>CRET>'
-ACCESS_CODE_GENERATED = '<ACCESS_CODE_GENERATED>'
+secrets = dotenv_values("../.env")
+
+APP_KEY = secrets['DROPBOX_APP_KEY']
+APP_SECRET = secrets['DROPBOX_APP_SECRET']
+ACCESS_CODE_GENERATED = secrets['DROPBOX_GENERATED_ACCESS_CODE']
 
 BASIC_AUTH = base64.b64encode(f'{APP_KEY}:{APP_SECRET}'.encode())
 
