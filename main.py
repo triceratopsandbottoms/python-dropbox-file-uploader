@@ -5,7 +5,7 @@ import configparser
 from dotenv import dotenv_values
 
 # load secrets from file
-secrets = dotenv_values("../.env")
+secrets = dotenv_values("//home/aya/nlp/contextual-props-de/.env")
 
 credentials_dir = secrets['DROPBOXUPLOADER_CREDENTIALS_DIR']
 
@@ -81,29 +81,54 @@ class DropboxHandler:
         except dropbox.exceptions.DropboxException as e:
             print("check_token_validity function: An error occurred while checking the token:", e)
 
-    def upload_files(self, file, saveAs):
+    def upload_files(self, local_file, db_file_path, mode='bytes'):
         # Upload a file to Dropbox
         try:
             self.check_token_validity()
-            #file_name = os.path.basename(self.local_file_path)
 
-            #with open(self.local_file_path, "rb") as file:
-            self.dbx.files_upload(file, f"{self.dropbox_directory}/{saveAs}", mode=dropbox.files.WriteMode("overwrite"))
-            #print(f"File '{saveAs}' uploaded successfully to Dropbox.")
+            if mode=='bytes':
+                self.dbx.files_upload(local_file, f"{self.dropbox_directory}{db_file_path}", mode=dropbox.files.WriteMode("overwrite"))
+            elif mode=='file_path':
+                with open(local_file, "rb") as file:
+                    self.dbx.files_upload(file, f"{self.dropbox_directory}/{db_file_path}", mode=dropbox.files.WriteMode("overwrite"))
+                    
+            print(f"File '{db_file_path}' uploaded successfully to Dropbox.")
 
         except Exception as e:
-            print(f"upload_files function: An error occurred while saving {saveAs}:", e)
+            print(f"upload_files function: An error occurred while saving {db_file_path}:", e)
             
     def download_files(self, db_file_path, local_file_path):
         # Download a file from Dropbox
         try:
             self.check_token_validity()
 
-            self.dbx.files_download_to_file(local_file_path, f"{self.dropbox_directory}/{db_file_path}")
+            self.dbx.files_download_to_file(local_file_path, f"{self.dropbox_directory}{db_file_path}")
             print(f"File '{db_file_path}' downloaded successfully to '{local_file_path}'.")
 
         except Exception as e:
-            print(f"upload_files function: An error occurred while saving {local_file_path}:", e)
+            print(f"download_files function: An error occurred while saving {local_file_path}:", e)
+            
+    def list_all_folder_files(self, db_folder_path):
+        try:
+            self.check_token_validity()
+            
+            all_files = [] # collects all files here
+            has_more_files = True # because we haven't queried yet
+            cursor = None # because we haven't queried yet
+
+            while has_more_files:
+                if cursor is None: # if it is our first time querying
+                    result = self.dbx.files_list_folder(db_folder_path)
+                else:
+                    result = self.dbx.files_list_folder_continue(cursor)
+                all_files.extend(result.entries)
+                cursor = result.cursor
+                has_more_files = result.has_more
+            print("Number of total files listed: ", len(all_files))
+        except Exception as e:
+            print(f"list_all_folder_files function: An error occurred while getting files in folder {db_folder_path}:", e)
+        else:
+            return [entry.name for entry in all_files]
 
 # def main():
     # # Main program flow
